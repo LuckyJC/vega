@@ -11,21 +11,21 @@ namespace vega.Controllers
 {
     public class MakesController : Controller
     {
-        private readonly VegaDbContext context;
-        private readonly IMapper mapper;
+        private readonly VegaDbContext _context;
+        private readonly IMapper _mapper;
         public MakesController(VegaDbContext context, IMapper mapper)
         {
-            this.mapper = mapper;
-            this.context = context;
+            this._mapper = mapper;
+            this._context = context;
 
         }
 
         [HttpGet("/api/makes")]
         public async Task<IEnumerable<MakeResource>> GetMakes()
         {
-            var makes = await context.Makes.Include(m => m.Models).ToListAsync();
+            var makes = await _context.Makes.Include(m => m.Models).ToListAsync();
 
-            return mapper.Map<List<Make>, List<MakeResource>>(makes);
+            return _mapper.Map<List<Make>, List<MakeResource>>(makes);
         }
     }
 }
