@@ -23,6 +23,18 @@ namespace vega.Controllers
         [HttpPost]
         public async Task<IActionResult> CreateVehicle([FromBody] VehicleResource vehicleResource)
         {
+            if(!ModelState.IsValid)
+                return BadRequest(ModelState);
+
+            //This is an example of how we could add custom validation for business logic; not really necessary for this application
+            //but serves as an example of how we can do business logic
+            var model = await _context.Models.FindAsync(vehicleResource.ModelId);
+            if(model == null)
+            {
+                ModelState.AddModelError("ModelId", "Invalid ModelId");
+                return BadRequest(ModelState);
+            }
+
             var vehicle = _mapper.Map<VehicleResource, Vehicle>(vehicleResource);
             vehicle.LastUpdate = DateTime.Now;
 
