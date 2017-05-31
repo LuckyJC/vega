@@ -2,6 +2,7 @@ using System;
 using System.Threading.Tasks;
 using AutoMapper;
 using Microsoft.AspNetCore.Mvc;
+using Microsoft.EntityFrameworkCore;
 using vega.Controllers.Resources;
 using vega.Models;
 using vega.Persistence;
@@ -39,6 +40,32 @@ namespace vega.Controllers
             vehicle.LastUpdate = DateTime.Now;
 
             _context.Vehicles.Add(vehicle);
+            await _context.SaveChangesAsync();
+
+            var result = _mapper.Map<Vehicle, VehicleResource>(vehicle);
+
+            return Ok(result);
+        }
+
+        [HttpPut("{id}")]
+        public async Task<IActionResult> UpdateVehicle(int id, [FromBody] VehicleResource vehicleResource)
+        {
+            if(!ModelState.IsValid)
+                return BadRequest(ModelState);
+
+            //This is an example of how we could add custom validation for business logic; not really necessary for this application
+            //but serves as an example of how we can do business logic
+            var model = await _context.Models.FindAsync(vehicleResource.ModelId);
+            if(model == null)
+            {
+                ModelState.AddModelError("ModelId", "Invalid ModelId");
+                return BadRequest(ModelState);
+            }
+
+            var vehicle = await _context.Vehicles.Include(v => v.Features).SingleOrDefaultAsync(v => v.Id == id); 
+            _mapper.Map<VehicleResource, Vehicle>(vehicleResource, vehicle);
+            vehicle.LastUpdate = DateTime.Now;
+
             await _context.SaveChangesAsync();
 
             var result = _mapper.Map<Vehicle, VehicleResource>(vehicle);
