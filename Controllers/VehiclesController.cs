@@ -29,19 +29,10 @@ namespace vega.Controllers
             if (!ModelState.IsValid)
                 return BadRequest(ModelState);
 
-            //This is an example of how we could add custom validation for business logic; not really necessary for this application
-            //but serves as an example of how we can do business logic
-            var model = await _context.Models.FindAsync(vehicleResource.ModelId);
-            if (model == null)
-            {
-                ModelState.AddModelError("ModelId", "Invalid ModelId");
-                return BadRequest(ModelState);
-            }
-
             var vehicle = _mapper.Map<SaveVehicleResource, Vehicle>(vehicleResource);
             vehicle.LastUpdate = DateTime.Now;
 
-            _context.Vehicles.Add(vehicle);
+            _repository.Add(vehicle);
             await _context.SaveChangesAsync();
 
             //adds complete vehicle object in memory and includes features, models, and makes
@@ -58,15 +49,6 @@ namespace vega.Controllers
         {
             if (!ModelState.IsValid)
                 return BadRequest(ModelState);
-
-            //This is an example of how we could add custom validation for business logic; not really necessary for this application
-            //but serves as an example of how we can do business logic
-            var model = await _context.Models.FindAsync(vehicleResource.ModelId);
-            if (model == null)
-            {
-                ModelState.AddModelError("ModelId", "Invalid ModelId");
-                return BadRequest(ModelState);
-            }
 
             //provides a complete representation of vehicle to return in api using VehicleRepository
             var vehicle = await _repository.GetVehicle(id);
@@ -87,12 +69,12 @@ namespace vega.Controllers
         [HttpDelete("{id}")]
         public async Task<IActionResult> DeleteVehicle(int id)
         {
-            var vehicle = await _context.Vehicles.FindAsync(id);
+            var vehicle = await _repository.GetVehicle(id, includeRelated: false); //using named parameter to make code more readable
 
             if (vehicle == null)
                 return NotFound();
 
-            _context.Remove(vehicle);
+            _repository.Remove(vehicle);
             await _context.SaveChangesAsync();
 
             return Ok(id);
