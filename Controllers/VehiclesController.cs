@@ -13,13 +13,13 @@ namespace vega.Controllers
     [Route("/api/vehicles")]
     public class VehiclesController : Controller
     {
-        public VegaDbContext _context { get; }
         public IMapper _mapper { get; }
         private readonly IVehicleRepository _repository;
-        public VehiclesController(VegaDbContext _context, IMapper _mapper, IVehicleRepository _repository)
+        private readonly IUnitOfWork _unitOfWork;
+        public VehiclesController(IMapper _mapper, IVehicleRepository _repository, IUnitOfWork _unitOfWork)
         {
+            this._unitOfWork = _unitOfWork;
             this._repository = _repository;
-            this._context = _context;
             this._mapper = _mapper;
         }
 
@@ -33,7 +33,7 @@ namespace vega.Controllers
             vehicle.LastUpdate = DateTime.Now;
 
             _repository.Add(vehicle);
-            await _context.SaveChangesAsync();
+            await _unitOfWork.CompleteAsync();
 
             //adds complete vehicle object in memory and includes features, models, and makes
             //using VehicleRepository to avoid writing the same query many times
@@ -59,7 +59,10 @@ namespace vega.Controllers
             _mapper.Map<SaveVehicleResource, Vehicle>(vehicleResource, vehicle);
             vehicle.LastUpdate = DateTime.Now;
 
-            await _context.SaveChangesAsync();
+            await _unitOfWork.CompleteAsync();
+
+            //need to load the updated vehicle from the database to map and return
+            vehicle = await _repository.GetVehicle(vehicle.Id);
 
             var result = _mapper.Map<Vehicle, VehicleResource>(vehicle);
 
@@ -75,7 +78,7 @@ namespace vega.Controllers
                 return NotFound();
 
             _repository.Remove(vehicle);
-            await _context.SaveChangesAsync();
+            await _unitOfWork.CompleteAsync();
 
             return Ok(id);
         }

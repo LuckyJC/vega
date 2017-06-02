@@ -10,7 +10,6 @@ namespace vega.Persistence
         public VehicleRepository(VegaDbContext _context)
         {
             this._context = _context;
-
         }
 
         public async Task<Vehicle> GetVehicle(int id, bool includeRelated = true) //setting to true as we need to include this by default for most things
