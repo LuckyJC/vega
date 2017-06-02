@@ -42,6 +42,14 @@ namespace vega.Controllers
             _context.Vehicles.Add(vehicle);
             await _context.SaveChangesAsync();
 
+            //adds complete vehicle object in memory and includes features, models, and makes
+            vehicle = await _context.Vehicles
+                .Include(v => v.Features)
+                    .ThenInclude(vf => vf.Feature) //new method in ef core allows us to eager load nested objects
+                .Include(v => v.Model)
+                    .ThenInclude(m => m.Make) //works with mapping profile to eager load make with model
+                .SingleOrDefaultAsync(v => v.Id == vehicle.Id);
+
             var result = _mapper.Map<Vehicle, SaveVehicleResource>(vehicle);
 
             return Ok(result);
@@ -62,7 +70,13 @@ namespace vega.Controllers
                 return BadRequest(ModelState);
             }
 
-            var vehicle = await _context.Vehicles.Include(v => v.Features).SingleOrDefaultAsync(v => v.Id == id);
+            //provides a complete representation of vehicle
+            var vehicle = await _context.Vehicles
+                .Include(v => v.Features)
+                    .ThenInclude(vf => vf.Feature) //new method in ef core allows us to eager load nested objects
+                .Include(v => v.Model)
+                    .ThenInclude(m => m.Make) //works with mapping profile to eager load make with model
+                .SingleOrDefaultAsync(v => v.Id == id);
 
             if (vehicle == null)
                 return NotFound();
@@ -72,7 +86,7 @@ namespace vega.Controllers
 
             await _context.SaveChangesAsync();
 
-            var result = _mapper.Map<Vehicle, SaveVehicleResource>(vehicle);
+            var result = _mapper.Map<Vehicle, VehicleResource>(vehicle);
 
             return Ok(result);
         }
