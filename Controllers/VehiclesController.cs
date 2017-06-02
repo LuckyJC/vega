@@ -22,7 +22,7 @@ namespace vega.Controllers
         }
 
         [HttpPost]
-        public async Task<IActionResult> CreateVehicle([FromBody] VehicleResource vehicleResource)
+        public async Task<IActionResult> CreateVehicle([FromBody] SaveVehicleResource vehicleResource)
         {
             if(!ModelState.IsValid)
                 return BadRequest(ModelState);
@@ -36,19 +36,19 @@ namespace vega.Controllers
                 return BadRequest(ModelState);
             }
 
-            var vehicle = _mapper.Map<VehicleResource, Vehicle>(vehicleResource);
+            var vehicle = _mapper.Map<SaveVehicleResource, Vehicle>(vehicleResource);
             vehicle.LastUpdate = DateTime.Now;
 
             _context.Vehicles.Add(vehicle);
             await _context.SaveChangesAsync();
 
-            var result = _mapper.Map<Vehicle, VehicleResource>(vehicle);
+            var result = _mapper.Map<Vehicle, SaveVehicleResource>(vehicle);
 
             return Ok(result);
         }
 
         [HttpPut("{id}")]
-        public async Task<IActionResult> UpdateVehicle(int id, [FromBody] VehicleResource vehicleResource)
+        public async Task<IActionResult> UpdateVehicle(int id, [FromBody] SaveVehicleResource vehicleResource)
         {
             if(!ModelState.IsValid)
                 return BadRequest(ModelState);
@@ -67,12 +67,12 @@ namespace vega.Controllers
             if (vehicle == null)
                 return NotFound();
 
-            _mapper.Map<VehicleResource, Vehicle>(vehicleResource, vehicle);
+            _mapper.Map<SaveVehicleResource, Vehicle>(vehicleResource, vehicle);
             vehicle.LastUpdate = DateTime.Now;
 
             await _context.SaveChangesAsync();
 
-            var result = _mapper.Map<Vehicle, VehicleResource>(vehicle);
+            var result = _mapper.Map<Vehicle, SaveVehicleResource>(vehicle);
 
             return Ok(result);
         }
@@ -90,5 +90,25 @@ namespace vega.Controllers
 
             return Ok(id);
         }
+
+        [HttpGet("{id}")]
+        public async Task<IActionResult> GetVehicle(int id)
+        {
+            //need to eager load Features with vehicle; replace FindAsync with SingleOrDefaultAsync
+            var vehicle = await _context.Vehicles
+                .Include(v => v.Features)
+                    .ThenInclude(vf => vf.Feature) //new method in ef core allows us to eager load nested objects
+                .Include(v => v.Model)
+                    .ThenInclude(m => m.Make) //works with mapping profile to eager load make with model
+                .SingleOrDefaultAsync(v => v.Id == id);
+
+            if (vehicle == null)
+                return NotFound();
+
+            var vehicleResource = _mapper.Map<Vehicle, VehicleResource>(vehicle);
+
+            return Ok(vehicleResource);
+        }
+
     }
 }

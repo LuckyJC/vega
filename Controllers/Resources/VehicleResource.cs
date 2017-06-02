@@ -1,8 +1,6 @@
 using System;
 using System.Collections.Generic;
 using System.Collections.ObjectModel;
-using System.ComponentModel.DataAnnotations;
-using vega.Models;
 
 namespace vega.Controllers.Resources
 {
@@ -10,19 +8,23 @@ namespace vega.Controllers.Resources
     {
         public int Id { get; set; }
 
-        //add foreign key property
-        public int ModelId { get; set; }
+        public ModelResource Model { get; set; }
+
+        public MakeResource Make { get; set; }
 
         public bool IsRegistered { get; set; }
         
-        [Required]
         public ContactResource Contact { get; set; }
+        
+        public DateTime LastUpdate { get; set; }
 
-        public ICollection<int> Features { get; set; }
+        public ICollection<FeatureResource> Features { get; set; }
 
+        //best practice to set a constructor to initialize features
         public VehicleResource()
         {
-            Features = new Collection<int>();
+            Features = new Collection<FeatureResource>();
         }
+
     }
 }
