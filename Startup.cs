@@ -31,6 +31,9 @@ namespace WebApplicationBasic
         // This method gets called by the runtime. Use this method to add services to the container.
         public void ConfigureServices(IServiceCollection services)
         {
+            //need to register interface; any instance of IVehicleRepository will create VehicleRepository
+            services.AddScoped<IVehicleRepository, VehicleRepository>();
+
             services.AddAutoMapper();
             
             services.AddDbContext<VegaDbContext>(options => options.UseSqlServer(Configuration.GetConnectionString("Default")));

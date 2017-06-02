@@ -15,8 +15,10 @@ namespace vega.Controllers
     {
         public VegaDbContext _context { get; }
         public IMapper _mapper { get; }
-        public VehiclesController(VegaDbContext _context, IMapper _mapper)
+        private readonly IVehicleRepository _repository;
+        public VehiclesController(VegaDbContext _context, IMapper _mapper, IVehicleRepository _repository)
         {
+            this._repository = _repository;
             this._context = _context;
             this._mapper = _mapper;
         }
@@ -24,13 +26,13 @@ namespace vega.Controllers
         [HttpPost]
         public async Task<IActionResult> CreateVehicle([FromBody] SaveVehicleResource vehicleResource)
         {
-            if(!ModelState.IsValid)
+            if (!ModelState.IsValid)
                 return BadRequest(ModelState);
 
             //This is an example of how we could add custom validation for business logic; not really necessary for this application
             //but serves as an example of how we can do business logic
             var model = await _context.Models.FindAsync(vehicleResource.ModelId);
-            if(model == null)
+            if (model == null)
             {
                 ModelState.AddModelError("ModelId", "Invalid ModelId");
                 return BadRequest(ModelState);
@@ -43,12 +45,8 @@ namespace vega.Controllers
             await _context.SaveChangesAsync();
 
             //adds complete vehicle object in memory and includes features, models, and makes
-            vehicle = await _context.Vehicles
-                .Include(v => v.Features)
-                    .ThenInclude(vf => vf.Feature) //new method in ef core allows us to eager load nested objects
-                .Include(v => v.Model)
-                    .ThenInclude(m => m.Make) //works with mapping profile to eager load make with model
-                .SingleOrDefaultAsync(v => v.Id == vehicle.Id);
+            //using VehicleRepository to avoid writing the same query many times
+            vehicle = await _repository.GetVehicle(vehicle.Id);
 
             var result = _mapper.Map<Vehicle, SaveVehicleResource>(vehicle);
 
@@ -58,25 +56,20 @@ namespace vega.Controllers
         [HttpPut("{id}")]
         public async Task<IActionResult> UpdateVehicle(int id, [FromBody] SaveVehicleResource vehicleResource)
         {
-            if(!ModelState.IsValid)
+            if (!ModelState.IsValid)
                 return BadRequest(ModelState);
 
             //This is an example of how we could add custom validation for business logic; not really necessary for this application
             //but serves as an example of how we can do business logic
             var model = await _context.Models.FindAsync(vehicleResource.ModelId);
-            if(model == null)
+            if (model == null)
             {
                 ModelState.AddModelError("ModelId", "Invalid ModelId");
                 return BadRequest(ModelState);
             }
 
-            //provides a complete representation of vehicle
-            var vehicle = await _context.Vehicles
-                .Include(v => v.Features)
-                    .ThenInclude(vf => vf.Feature) //new method in ef core allows us to eager load nested objects
-                .Include(v => v.Model)
-                    .ThenInclude(m => m.Make) //works with mapping profile to eager load make with model
-                .SingleOrDefaultAsync(v => v.Id == id);
+            //provides a complete representation of vehicle to return in api using VehicleRepository
+            var vehicle = await _repository.GetVehicle(id);
 
             if (vehicle == null)
                 return NotFound();
@@ -108,13 +101,8 @@ namespace vega.Controllers
         [HttpGet("{id}")]
         public async Task<IActionResult> GetVehicle(int id)
         {
-            //need to eager load Features with vehicle; replace FindAsync with SingleOrDefaultAsync
-            var vehicle = await _context.Vehicles
-                .Include(v => v.Features)
-                    .ThenInclude(vf => vf.Feature) //new method in ef core allows us to eager load nested objects
-                .Include(v => v.Model)
-                    .ThenInclude(m => m.Make) //works with mapping profile to eager load make with model
-                .SingleOrDefaultAsync(v => v.Id == id);
+            //get complete representation of vehicle in memory to return from api using VehicleRepository
+            var vehicle = await _repository.GetVehicle(id);
 
             if (vehicle == null)
                 return NotFound();
