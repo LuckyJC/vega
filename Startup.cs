@@ -30,6 +30,7 @@ namespace WebApplicationBasic
         {
             //need to register interface; any instance of IVehicleRepository will create VehicleRepository
             services.AddScoped<IVehicleRepository, VehicleRepository>();
+            services.AddScoped<IFeatureRepository, FeatureRepository>();
             
             services.AddScoped<IUnitOfWork, UnitOfWork>();
 
